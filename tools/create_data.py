@@ -12,6 +12,7 @@ from tools.dataset_converters import semantickitti_converter
 from tools.dataset_converters.create_gt_database import (
     GTDatabaseCreater, create_groundtruth_database)
 from tools.dataset_converters.update_infos_to_v2 import update_pkl_infos
+from tools.dataset_converters import once_converter as once
 
 
 def kitti_data_prep(root_path,
@@ -265,6 +266,37 @@ def semantickitti_data_prep(info_prefix, out_dir):
         info_prefix, out_dir)
 
 
+def once_data_prep(root_path, info_prefix, out_dir, workers, only_gt_database=False):
+    """
+     Args:
+        root_path (str): Path of dataset root.
+        info_prefix (str): The prefix of info filenames.
+        out_dir (str): Output directory of the generated info file.
+        workers (int): Number of threads to be used.
+
+        only_gt_database (bool, optional): Whether to only generate ground
+            truth database. Default to False.
+    """
+
+    if not only_gt_database:
+        once.create_once_info_file(root_path, info_prefix, out_dir)
+        info_train_path = osp.join(out_dir, f'{info_prefix}_infos_train.pkl')
+        info_val_path = osp.join(out_dir, f'{info_prefix}_infos_val.pkl')
+
+        update_pkl_infos('once', out_dir=out_dir, pkl_path=info_train_path)
+        update_pkl_infos('once', out_dir=out_dir, pkl_path=info_val_path)
+
+    GTDatabaseCreater(
+        'OnceDataset',
+        out_dir,
+        info_prefix,
+        f'{info_prefix}_infos_train.pkl',
+        relative_path=False,
+        with_mask=False,
+        num_worker=workers).create()
+
+    print_log('Successfully preparing Once Dataset')
+
 parser = argparse.ArgumentParser(description='Data converter arg parser')
 parser.add_argument('dataset', metavar='kitti', help='name of the dataset')
 parser.add_argument(
@@ -416,5 +448,12 @@ if __name__ == '__main__':
     elif args.dataset == 'semantickitti':
         semantickitti_data_prep(
             info_prefix=args.extra_tag, out_dir=args.out_dir)
+    elif args.dataset == 'once':
+        once_data_prep(
+            root_path=args.root_path,
+            info_prefix=args.extra_tag,
+            out_dir=args.out_dir,
+            workers=args.workers,
+            only_gt_database=args.only_gt_database)
     else:
         raise NotImplementedError(f'Don\'t support {args.dataset} dataset.')

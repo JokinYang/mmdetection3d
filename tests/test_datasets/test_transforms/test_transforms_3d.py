@@ -8,7 +8,7 @@ from mmengine.testing import assert_allclose
 
 from mmdet3d.datasets import (GlobalAlignment, RandomFlip3D,
                               SemanticKittiDataset)
-from mmdet3d.datasets.transforms import GlobalRotScaleTrans, LaserMix, PolarMix
+from mmdet3d.datasets.transforms import InplaceRotate, LaserMix, PolarMix
 from mmdet3d.structures import LiDARPoints
 from mmdet3d.testing import create_data_info_after_loading
 from mmdet3d.utils import register_all_modules
@@ -19,9 +19,9 @@ register_all_modules()
 class TestGlobalRotScaleTrans(unittest.TestCase):
 
     def test_globle_rotation_scale_trans(self):
-        rot_trans = GlobalRotScaleTrans(
+        rot_trans = InplaceRotate(
             rot_range=[-0.78, 0.78], scale_ratio_range=[1, 1])
-        scale_trans = GlobalRotScaleTrans(
+        scale_trans = InplaceRotate(
             rot_range=[0, 0], scale_ratio_range=[0.95, 1.05])
 
         ori_data_info = create_data_info_after_loading()

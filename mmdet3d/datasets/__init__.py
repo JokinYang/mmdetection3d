@@ -14,7 +14,7 @@ from .sunrgbd_dataset import SUNRGBDDataset
 # yapf: disable
 from .transforms import (AffineResize, BackgroundPointsFilter, GlobalAlignment,
                          GlobalRotScaleTrans, IndoorPatchPointSample,
-                         IndoorPointSample, LoadAnnotations3D,
+                         IndoorPointSample, LoadAnnotations3D, PointsRotateZ90CW,
                          LoadPointsFromDict, LoadPointsFromFile,
                          LoadPointsFromMultiSweeps, NormalizePointsColor,
                          ObjectNameFilter, ObjectNoise, ObjectRangeFilter,
@@ -24,6 +24,7 @@ from .transforms import (AffineResize, BackgroundPointsFilter, GlobalAlignment,
                          RandomShiftScale, Resize3D, VoxelBasedPointSampler)
 from .utils import get_loading_pipeline
 from .waymo_dataset import WaymoDataset
+from .once_dataset import OnceDataset
 
 __all__ = [
     'KittiDataset', 'CBGSDataset', 'NuScenesDataset', 'LyftDataset',
@@ -38,4 +39,5 @@ __all__ = [
     'VoxelBasedPointSampler', 'get_loading_pipeline', 'RandomDropPointsColor',
     'RandomJitterPoints', 'ObjectNameFilter', 'AffineResize',
     'RandomShiftScale', 'LoadPointsFromDict', 'Resize3D', 'RandomResize3D',
+    'OnceDataset', 'PointsRotateZ90CW',
 ]

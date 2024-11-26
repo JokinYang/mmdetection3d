@@ -1077,7 +1077,8 @@ class Det3DLocalVisualizer(DetLocalVisualizer):
             drawn_img = pred_img_data
         else:
             drawn_img = None
-
+        if hasattr(self,'pcd'):
+            o3d.io.write_point_cloud(f"{out_file}.ply",self.pcd)
         if show:
             self.show(
                 o3d_save_path,

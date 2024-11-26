@@ -588,7 +588,33 @@ class GTDatabaseCreater:
                         with_label_3d=True,
                         backend_args=backend_args)
                 ])
-
+        elif self.dataset_class_name == 'OnceDataset':
+            backend_args = None
+            dataset_cfg.update(
+                test_mode=False,
+                data_prefix=dict(pts=''),
+                modality=dict(
+                    use_lidar=True,
+                    use_depth=False,
+                    use_lidar_intensity=True,
+                    use_camera=False,
+                ),
+                pipeline=[
+                    dict(
+                        type='LoadPointsFromFile',
+                        coord_type='LIDAR',
+                        load_dim=4,
+                        use_dim=4,
+                        backend_args=backend_args),
+                    dict(
+                        type='PointsRotateZ90CW'),
+                    dict(
+                        type='LoadAnnotations3D',
+                        with_bbox_3d=True,
+                        with_label_3d=True,
+                        backend_args=backend_args),
+                ]
+            )
         self.dataset = DATASETS.build(dataset_cfg)
         self.pipeline = self.dataset.pipeline
         if self.database_save_path is None:

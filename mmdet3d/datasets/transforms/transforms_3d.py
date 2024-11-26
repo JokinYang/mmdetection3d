@@ -15,7 +15,7 @@ from mmengine import is_list_of, is_tuple_of
 from mmdet3d.models.task_modules import VoxelGenerator
 from mmdet3d.registry import TRANSFORMS
 from mmdet3d.structures import (CameraInstance3DBoxes, DepthInstance3DBoxes,
-                                LiDARInstance3DBoxes)
+                                LiDARInstance3DBoxes, LiDARPoints)
 from mmdet3d.structures.ops import box_np_ops
 from mmdet3d.structures.points import BasePoints
 from .data_augment_utils import noise_per_object_v3_
@@ -51,7 +51,7 @@ class RandomDropPointsColor(BaseTransform):
         """
         points = input_dict['points']
         assert points.attribute_dims is not None and \
-            'color' in points.attribute_dims, \
+               'color' in points.attribute_dims, \
             'Expect points have color attribute'
 
         # this if-expression is a bit strange
@@ -1037,12 +1037,12 @@ class PointSample(BaseTransform):
         self.replace = replace
 
     def _points_random_sampling(
-        self,
-        points: BasePoints,
-        num_samples: Union[int, float],
-        sample_range: Optional[float] = None,
-        replace: bool = False,
-        return_choices: bool = False
+            self,
+            points: BasePoints,
+            num_samples: Union[int, float],
+            sample_range: Optional[float] = None,
+            replace: bool = False,
+            return_choices: bool = False
     ) -> Union[Tuple[BasePoints, np.ndarray], BasePoints]:
         """Points random sampling.
 
@@ -1250,7 +1250,7 @@ class IndoorPatchPointSample(BaseTransform):
             attribute_dims.update(
                 dict(normalized_coord=[
                     attributes.shape[1], attributes.shape[1] +
-                    1, attributes.shape[1] + 2
+                                         1, attributes.shape[1] + 2
                 ]))
 
         points = np.concatenate([centered_coords, attributes], axis=1)
@@ -1335,7 +1335,7 @@ class IndoorPatchPointSample(BaseTransform):
                 flag2 = True
             else:
                 flag2 = np.sum(cur_sem_mask != self.ignore_index) / \
-                               len(cur_sem_mask) >= 0.7
+                        len(cur_sem_mask) >= 0.7
 
             if flag1 and flag2:
                 break
@@ -1424,7 +1424,7 @@ class BackgroundPointsFilter(BaseTransform):
     def __init__(self, bbox_enlarge_range: Union[Tuple[float], float]) -> None:
         assert (is_tuple_of(bbox_enlarge_range, float)
                 and len(bbox_enlarge_range) == 3) \
-            or isinstance(bbox_enlarge_range, float), \
+               or isinstance(bbox_enlarge_range, float), \
             f'Invalid arguments bbox_enlarge_range {bbox_enlarge_range}'
 
         if isinstance(bbox_enlarge_range, float):
@@ -1501,7 +1501,7 @@ class VoxelBasedPointSampler(BaseTransform):
         self.time_dim = time_dim
         if prev_sweep_cfg is not None:
             assert prev_sweep_cfg['max_num_points'] == \
-                cur_sweep_cfg['max_num_points']
+                   cur_sweep_cfg['max_num_points']
             self.prev_voxel_generator = VoxelGenerator(**prev_sweep_cfg)
             self.prev_voxel_num = self.prev_voxel_generator._max_voxels
         else:
@@ -1527,7 +1527,7 @@ class VoxelBasedPointSampler(BaseTransform):
                 sampler._max_voxels - voxels.shape[0], sampler._max_num_points,
                 point_dim
             ],
-                                      dtype=points.dtype)
+                dtype=points.dtype)
             padding_points[:] = voxels[0]
             sample_points = np.concatenate([voxels, padding_points], axis=0)
         else:
@@ -1706,7 +1706,7 @@ class AffineResize(BaseTransform):
             valid_index = (centers2d[:, 0] >
                            0) & (centers2d[:, 0] <
                                  self.img_scale[0]) & (centers2d[:, 1] > 0) & (
-                                     centers2d[:, 1] < self.img_scale[1])
+                                  centers2d[:, 1] < self.img_scale[1])
             results['centers_2d'] = centers2d[valid_index]
 
             if 'gt_bboxes' in results:
@@ -2021,14 +2021,14 @@ class RandomCrop3D(RandomCrop):
     """
 
     def __init__(
-        self,
-        crop_size: tuple,
-        crop_type: str = 'absolute',
-        allow_negative_crop: bool = False,
-        recompute_bbox: bool = False,
-        bbox_clip_border: bool = True,
-        rel_offset_h: tuple = (0., 1.),
-        rel_offset_w: tuple = (0., 1.)
+            self,
+            crop_size: tuple,
+            crop_type: str = 'absolute',
+            allow_negative_crop: bool = False,
+            recompute_bbox: bool = False,
+            bbox_clip_border: bool = True,
+            rel_offset_h: tuple = (0., 1.),
+            rel_offset_w: tuple = (0., 1.)
     ) -> None:
         super().__init__(
             crop_size=crop_size,
@@ -2095,7 +2095,7 @@ class RandomCrop3D(RandomCrop):
                 bboxes[:, 0::2] = np.clip(bboxes[:, 0::2], 0, img_shape[1])
                 bboxes[:, 1::2] = np.clip(bboxes[:, 1::2], 0, img_shape[0])
             valid_inds = (bboxes[:, 2] > bboxes[:, 0]) & (
-                bboxes[:, 3] > bboxes[:, 1])
+                    bboxes[:, 3] > bboxes[:, 1])
             # If the crop does not contain any gt-bbox area and
             # allow_negative_crop is False, skip this image.
             if (key == 'gt_bboxes' and not valid_inds.any()
@@ -2112,7 +2112,7 @@ class RandomCrop3D(RandomCrop):
             if mask_key in results:
                 results[mask_key] = results[mask_key][
                     valid_inds.nonzero()[0]].crop(
-                        np.asarray([crop_x1, crop_y1, crop_x2, crop_y2]))
+                    np.asarray([crop_x1, crop_y1, crop_x2, crop_y2]))
                 if self.recompute_bbox:
                     results[key] = results[mask_key].get_bboxes()
 
@@ -2133,7 +2133,7 @@ class RandomCrop3D(RandomCrop):
             K[1, 2] -= crop_y1
             offset_cam2img = np.matmul(K, T)
             results['cam2img'][:offset_cam2img.shape[0], :offset_cam2img.
-                               shape[1]] = offset_cam2img
+            shape[1]] = offset_cam2img
 
         results['img_crop_offset'] = [offset_w, offset_h]
 
@@ -2298,19 +2298,19 @@ class MultiViewWrapper(BaseTransform):
     """
 
     def __init__(
-        self,
-        transforms: dict,
-        override_aug_config: bool = True,
-        process_fields: list = ['img', 'cam2img', 'lidar2cam'],
-        collected_keys: list = [
-            'scale', 'scale_factor', 'crop', 'img_crop_offset', 'ori_shape',
-            'pad_shape', 'img_shape', 'pad_fixed_size', 'pad_size_divisor',
-            'flip', 'flip_direction', 'rotate'
-        ],
-        randomness_keys: list = [
-            'scale', 'scale_factor', 'crop_size', 'img_crop_offset', 'flip',
-            'flip_direction', 'photometric_param'
-        ]
+            self,
+            transforms: dict,
+            override_aug_config: bool = True,
+            process_fields: list = ['img', 'cam2img', 'lidar2cam'],
+            collected_keys: list = [
+                'scale', 'scale_factor', 'crop', 'img_crop_offset', 'ori_shape',
+                'pad_shape', 'img_shape', 'pad_fixed_size', 'pad_size_divisor',
+                'flip', 'flip_direction', 'rotate'
+            ],
+            randomness_keys: list = [
+                'scale', 'scale_factor', 'crop_size', 'img_crop_offset', 'flip',
+                'flip_direction', 'photometric_param'
+            ]
     ) -> None:
         self.transforms = Compose(transforms)
         self.override_aug_config = override_aug_config
@@ -2443,7 +2443,7 @@ class PolarMix(BaseTransform):
             # calculate horizontal angle for each point
             yaw = -torch.atan2(points.coord[:, 1], points.coord[:, 0])
             mix_yaw = -torch.atan2(mix_points.coord[:, 1], mix_points.coord[:,
-                                                                            0])
+                                                           0])
 
             # select points in sector
             idx = (yaw <= start_angle) | (yaw >= end_angle)
@@ -2608,13 +2608,13 @@ class LaserMix(BaseTransform):
         pitch_angle_down = self.pitch_angles[0] / 180 * np.pi
         pitch_angle_up = self.pitch_angles[1] / 180 * np.pi
 
-        rho = torch.sqrt(points.coord[:, 0]**2 + points.coord[:, 1]**2)
+        rho = torch.sqrt(points.coord[:, 0] ** 2 + points.coord[:, 1] ** 2)
         pitch = torch.atan2(points.coord[:, 2], rho)
         pitch = torch.clamp(pitch, pitch_angle_down + 1e-5,
                             pitch_angle_up - 1e-5)
 
-        mix_rho = torch.sqrt(mix_points.coord[:, 0]**2 +
-                             mix_points.coord[:, 1]**2)
+        mix_rho = torch.sqrt(mix_points.coord[:, 0] ** 2 +
+                             mix_points.coord[:, 1] ** 2)
         mix_pitch = torch.atan2(mix_points.coord[:, 2], mix_rho)
         mix_pitch = torch.clamp(mix_pitch, pitch_angle_down + 1e-5,
                                 pitch_angle_up - 1e-5)
@@ -2683,3 +2683,90 @@ class LaserMix(BaseTransform):
         repr_str += f'pre_transform={self.pre_transform}, '
         repr_str += f'prob={self.prob})'
         return repr_str
+
+
+@TRANSFORMS.register_module()
+class InplaceRotate(BaseTransform):
+    """Apply global rotation, scaling and translation to a 3D scene.
+
+    Required Keys:
+
+    - points (np.float32)
+    - gt_bboxes_3d (np.float32)
+
+    Modified Keys:
+
+    - points (np.float32)
+    - gt_bboxes_3d (np.float32)
+
+
+    Args:
+
+    """
+
+    def __init__(self,
+                 rot_matrix: Union[List[List[float]], np.ndarray], rot_label: bool) -> None:
+        if (isinstance(rot_matrix, list)):
+            rot_matrix = np.array(rot_matrix)
+        assert isinstance(rot_matrix, np.ndarray), "rot_matrix should be a list or np.ndarray"
+        assert rot_matrix.shape == (3, 3), "rot_matrix should be a 3x3 matrix"
+        self.rot_matrix = rot_matrix
+        self.rot_label = rot_label
+
+    def _trans_bbox_points(self, input_dict: dict) -> None:
+        """Private function to translate bounding boxes and points.
+
+        Args:
+            input_dict (dict): Result dict from loading pipeline.
+
+        Returns:
+            dict: Results after translation, 'points', 'pcd_trans'
+            and `gt_bboxes_3d` is updated in the result dict.
+        """
+        points = input_dict['points']
+        if isinstance(points, LiDARPoints):
+            points.rotate(self.rot_matrix.T)
+        else:
+            raise NotImplementedError("Only support LiDARPoints for now")
+
+        if self.rot_label and 'gt_bboxes_3d' in input_dict:
+            gt_bboxes_3d = input_dict['gt_bboxes_3d']
+            if isinstance(gt_bboxes_3d, LiDARInstance3DBoxes):
+                gt_bboxes_3d.rotate(self.rot_matrix.T)
+            else:
+                raise NotImplementedError("Only support LiDARInstance3DBoxes for now")
+
+    def transform(self, input_dict: dict) -> dict:
+        """Private function to rotate, scale and translate bounding boxes and
+        points.
+
+        Args:
+            input_dict (dict): Result dict from loading pipeline.
+
+        Returns:
+            dict: Results after scaling, 'points', 'pcd_rotation',
+            'pcd_scale_factor', 'pcd_trans' and `gt_bboxes_3d` are updated
+            in the result dict.
+        """
+
+        self._trans_bbox_points(input_dict)
+
+        return input_dict
+
+    def __repr__(self) -> str:
+        """str: Return a string that describes the module."""
+        repr_str = self.__class__.__name__
+        repr_str += f'(rot_matrix={self.rot_matrix})'
+        return repr_str
+
+
+@TRANSFORMS.register_module()
+class PointsRotateZ90CW(InplaceRotate):
+    """
+    Rotate the points by 90 degrees clockwise around the z-axis.
+
+    """
+
+    def __init__(self):
+        rot_matrix = np.array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
+        super().__init__(rot_matrix, rot_label=False)

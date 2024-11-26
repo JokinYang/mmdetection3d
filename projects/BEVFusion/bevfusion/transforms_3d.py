@@ -6,7 +6,7 @@ import torch
 from mmcv.transforms import BaseTransform
 from PIL import Image
 
-from mmdet3d.datasets import GlobalRotScaleTrans
+from mmdet3d.datasets import InplaceRotate
 from mmdet3d.registry import TRANSFORMS
 
 
@@ -144,7 +144,7 @@ class BEVFusionRandomFlip3D:
 
 
 @TRANSFORMS.register_module()
-class BEVFusionGlobalRotScaleTrans(GlobalRotScaleTrans):
+class BEVFusionGlobalRotScaleTrans(InplaceRotate):
     """Compared with `GlobalRotScaleTrans`, the augmentation order in this
     class is rotation, translation and scaling (RTS)."""
 
