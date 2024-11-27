@@ -6,6 +6,7 @@ from mmdet3d.registry import DATASETS
 from mmdet3d.structures import LiDARInstance3DBoxes
 from . import PointsRotateZ90CW
 from .det3d_dataset import Det3DDataset
+from typing import Sequence
 
 
 @DATASETS.register_module()

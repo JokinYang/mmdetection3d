@@ -300,6 +300,9 @@ def filter_data(gt_anno, pred_anno, difficulty_mode, difficulty_level, class_nam
         reject = pred_anno['name'] != class_name
     pred_flag[reject] = -1
 
+    if(num_gt==0 or num_pred==0):
+        return gt_flag, pred_flag
+
     if difficulty_mode == 'Overall':
         ignore = overall_filter(gt_anno['boxes_3d'])
         gt_flag[ignore] = 1

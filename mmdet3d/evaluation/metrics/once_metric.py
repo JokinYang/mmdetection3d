@@ -52,7 +52,7 @@ class OnceMetric(BaseMetric):
     def __init__(self,
                  ann_file: str,
                  metric: Union[str, List[str]] = 'mAP',
-                 pcd_limit_range: List[float] = [0, -40, -3, 70.4, 40, 0.0],
+                 pcd_limit_range: List[float] = [-75.2, -75.2, -5.0, 75.2, 75.2, 3.0],
                  prefix: Optional[str] = None,
                  pklfile_prefix: Optional[str] = None,
                  default_cam_key: str = 'CAM2',
@@ -133,6 +133,25 @@ class OnceMetric(BaseMetric):
             data_batch (dict): A batch of data from the dataloader.
             data_samples (Sequence[dict]): A batch of outputs from the model.
         """
+        # 使用下面的方式可以直接从data_batch中提取gt的label信息
+        # ann_samples = data_batch['data_samples']
+        # assert len(ann_samples) == len(
+        #     data_samples), "The number of samples in ann_batch and data_batch should be the same."
+        # for i in range(len(ann_samples)):
+        #     anno = ann_samples[i]
+        #     pred = data_samples[i]
+        #     assert anno['sample_idx'] == pred['sample_idx']
+        #     result = dict()
+        #     pred_3d = anno['pred_instances_3d']
+        #     for attr_name in pred_3d:
+        #         pred_3d[attr_name] = pred_3d[attr_name].to('cpu')
+        #     result['pred_instances_3d'] = pred_3d
+        #
+        #     eval_ann_info = anno['eval_ann_info']
+        #     result['eval_ann_info'] = eval_ann_info
+        #     result['sample_idx'] = anno['sample_idx']
+        #     self.results.append(result)
+        # return None
 
         for data_sample in data_samples:
             result = dict()
@@ -164,8 +183,6 @@ class OnceMetric(BaseMetric):
         # load annotations
         pkl_infos = load(self.ann_file, backend_args=self.backend_args)
         self.data_infos = self.convert_annos_to_once_annos(pkl_infos)
-        # self.data_infos = list(filter(lambda x: x['sample_idx'] == '1616343527200', self.data_infos))
-        self.data_infos_sample_idx_map = {int(info['sample_idx']): i for i, info in enumerate(self.data_infos)}
 
         result_dict, tmp_dir = self.format_results(
             results,
@@ -181,7 +198,7 @@ class OnceMetric(BaseMetric):
             return metric_dict
 
         gt_annos = [
-            self.data_infos[self.data_infos_sample_idx_map[result['sample_idx']]]['once_annos']
+            self.data_infos[result['sample_idx']]['once_annos']
             for result in results
         ]
 
@@ -224,7 +241,7 @@ class OnceMetric(BaseMetric):
             ap_result_str, ap_dict_ = once_eval(
                 gt_annos, results_dict[name], classes,
                 use_superclass=self.use_superclass,
-                difficulty_mode=self.difficulty_mode,use_gpu=False)
+                difficulty_mode=self.difficulty_mode, use_gpu=False)
             for ap_type, ap in ap_dict_.items():
                 ap_dict[f'{name}/{ap_type}'] = float(f'{ap:.4f}')
 
@@ -324,7 +341,7 @@ class OnceMetric(BaseMetric):
         print('\nConverting 3D prediction to ONCE format')
         for idx, pred_dicts in enumerate(mmengine.track_iter_progress(net_outputs)):
             sample_idx = sample_idx_list[idx]
-            info = self.data_infos[self.data_infos_sample_idx_map[sample_idx]]
+            info = self.data_infos[sample_idx]
 
             box_dict = self.convert_valid_bboxes(pred_dicts, info)
             anno = {
