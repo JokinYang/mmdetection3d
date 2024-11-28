@@ -1,9 +1,12 @@
 import numpy as np
 import numba
+import torch
 
 from .iou_utils import rotate_iou_gpu_eval
 from .rotate_iou_cpu_eval import rotate_iou_cpu_eval
 from .eval_utils import compute_split_parts, overall_filter, distance_filter, overall_distance_filter
+
+from mmcv.ops.iou3d import boxes_iou3d
 
 iou_threshold_dict = {
     'Car': 0.7,
@@ -291,6 +294,9 @@ def filter_data(gt_anno, pred_anno, difficulty_mode, difficulty_level, class_nam
     gt_flag[reject] = -1
     num_pred = len(pred_anno['name'])
     pred_flag = np.zeros(num_pred, dtype=np.int64)
+    if(num_gt==0 or num_pred==0):
+        return gt_flag, pred_flag
+
     if use_superclass:
         if class_name == 'Vehicle':
             reject = np.logical_or(pred_anno['name'] == 'Pedestrian', pred_anno['name'] == 'Cyclist')
@@ -299,9 +305,6 @@ def filter_data(gt_anno, pred_anno, difficulty_mode, difficulty_level, class_nam
     else:
         reject = pred_anno['name'] != class_name
     pred_flag[reject] = -1
-
-    if(num_gt==0 or num_pred==0):
-        return gt_flag, pred_flag
 
     if difficulty_mode == 'Overall':
         ignore = overall_filter(gt_anno['boxes_3d'])
@@ -335,6 +338,8 @@ def iou3d_kernel(gt_boxes, pred_boxes):
     Returns:
         iou3d: [N, M]
     """
+    if pred_boxes.size ==0:
+        return np.zeros((gt_boxes.shape[0], 0))
     intersection_2d = rotate_iou_gpu_eval(gt_boxes[:, [0, 1, 3, 4, 6]], pred_boxes[:, [0, 1, 3, 4, 6]], criterion=2)
     gt_max_h = gt_boxes[:, [2]] + gt_boxes[:, [5]] * 0.5
     gt_min_h = gt_boxes[:, [2]] - gt_boxes[:, [5]] * 0.5
@@ -366,6 +371,8 @@ def iou3d_kernel_with_heading(gt_boxes, pred_boxes):
     Returns:
         iou3d: [N, M]
     """
+    if pred_boxes.size ==0:
+        return np.zeros((gt_boxes.shape[0], 0))
     intersection_2d = rotate_iou_gpu_eval(gt_boxes[:, [0, 1, 3, 4, 6]], pred_boxes[:, [0, 1, 3, 4, 6]], criterion=2)
     gt_max_h = gt_boxes[:, [2]] + gt_boxes[:, [5]] * 0.5
     gt_min_h = gt_boxes[:, [2]] - gt_boxes[:, [5]] * 0.5
@@ -392,10 +399,6 @@ def iou3d_kernel_with_heading(gt_boxes, pred_boxes):
     iou3d[diff_rot > np.pi / 2] = 0  # unmatched if diff_rot > 90
     return iou3d
 
-
-def rotate_iou_kernel_eval(gt_boxes, pred_boxes):
-    iou3d_cpu = rotate_iou_cpu_eval(gt_boxes, pred_boxes)
-    return iou3d_cpu
 
 
 def compute_iou3d(gt_annos, pred_annos, split_parts, with_heading):
@@ -426,7 +429,6 @@ def compute_iou3d(gt_annos, pred_annos, split_parts, with_heading):
             iou3d_part = iou3d_kernel_with_heading(gt_boxes, pred_boxes)
         else:
             iou3d_part = iou3d_kernel(gt_boxes, pred_boxes)
-
         gt_num_idx, pred_num_idx = 0, 0
         for idx in range(num_part_samples):
             gt_box_num = gt_num_per_sample[sample_idx + idx]
@@ -449,228 +451,3 @@ def compute_iou3d_cpu(gt_annos, pred_annos):
         ious.append(iou3d_part)
     return ious
 
-
-if __name__ == '__main__':
-    import numpy as np
-    import copy
-    pred_data = {
-        "name": [
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Car",
-            "Truck",
-            "Cyclist",
-            "Cyclist",
-            "Cyclist",
-            "Cyclist",
-            "Cyclist",
-            "Cyclist",
-            "Cyclist",
-            "Pedestrian"
-        ],
-        "boxes_3d": np.array([
-            [
-                -3.460779890336198, 11.889099506707907, -0.8206982783150591,
-                4.555971205891034, 1.8030093908309937, 1.5509192471702893,
-                5.2348885297696235
-            ],
-            [
-                -0.9969175029538491, -38.69317913045427, -1.2679895304161408,
-                4.708746910095215, 1.7456061840057373, 1.5380195379257202,
-                0.14170256455475894
-            ],
-            [
-                -11.875659942626953, -28.584253311157227, -1.1764512062072754,
-                4.154930114746094, 1.8246525526046753, 1.4076584577560425,
-                3.9471536000543317
-            ],
-            [
-                26.029391688726562, 9.458823658682036, -0.878351778172369,
-                4.8718061447143555, 2.0425333976745605, 1.8974950313568115,
-                3.131668361025401
-            ],
-            [
-                7.066287517547607, -41.02307891845703, -1.1766657829284668,
-                4.748326301574707, 1.7213102579116821, 1.4444016218185425,
-                6.081188654891694
-            ],
-            [
-                45.00757598876953, 0.7134484648704529, -1.3726370267315207,
-                4.079574108123779, 1.871203899383545, 1.6068871021270752,
-                2.7457537968927106
-            ],
-            [
-                33.84749221801758, 6.647745609283447, -1.163730502128601,
-                4.244619846343994, 1.7117009162902832, 1.4961812496185303,
-                2.753302129107066
-            ],
-            [
-                -12.939452171325684, -38.86998748779297, -1.1824709177017212,
-                4.087010383605957, 1.7874534130096436, 1.4045615196228027,
-                0.34081760247284976
-            ],
-            [
-                16.09961141847191, 2.2441862041183356, -1.0851360821293023,
-                4.3121538162231445, 1.9871797561645508, 1.391538143157959,
-                3.588504823046275
-            ],
-            [
-                54.64401685621457, -2.9081035025770916, -1.5011897673062937,
-                4.491567134857178, 1.8608672618865967, 1.6215827465057373,
-                2.922738345461436
-            ],
-            [
-                37.15433522149317, 9.52385295002776, -1.2339278905676163,
-                4.498213291168213, 1.9067984819412231, 1.4956731796264648,
-                2.734384687738963
-            ],
-            [
-                0.8569065254568784, -14.71125619047831, -1.183545708656311,
-                3.9722704887390137, 1.7630285024642944, 1.4633375406265259,
-                4.290142091112681
-            ],
-            [
-                -29.912790298461914, -46.6987419128418, -1.5271672010421753,
-                4.4965620040893555, 1.7782410383224487, 1.6138628721237183,
-                0.45587411721284
-            ],
-            [
-                -21.40715789794922, -45.748043060302734, -1.2914018630981445,
-                4.487395286560059, 1.7117500305175781, 1.5276386737823486,
-                0.44109621842438784
-            ],
-            [
-                -38.672725677490234, -47.02140808105469, -1.4273680448532104,
-                4.5264363288879395, 1.7633424997329712, 1.5924698114395142,
-                3.5285605510049542
-            ],
-            [
-                34.55817212078739, 2.9413106086257557, -1.3670268467323625,
-                4.448055267333984, 1.7787138223648071, 1.5423678159713745,
-                2.717174323397227
-            ],
-            [
-                -28.57036590576172, -49.468746185302734, -1.355146884918213,
-                4.083809852600098, 1.6974924802780151, 1.5252057313919067,
-                0.34226456482941714
-            ],
-            [
-                -40.58879470825195, -55.847801208496094, -1.2195556163787842,
-                4.496826171875, 1.7447901964187622, 1.5922259092330933,
-                0.4245611747079572
-            ],
-            [
-                42.1269688013447, 10.068271333382597, -1.0660970743981393,
-                4.407517910003662, 1.7619510889053345, 1.6174633502960205,
-                2.7486172590822537
-            ],
-            [
-                17.742129626695544, -38.093257147063426, -0.3968806048707871,
-                5.979849815368652, 2.516859292984009, 3.1814844608306885,
-                6.148222899429047
-            ],
-            [
-                17.100009612344763, -48.41649681150909, -1.2255488271075503,
-                1.5471781492233276, 0.800000011920929, 1.3624770641326904,
-                5.97439143656894
-            ],
-            [
-                33.6546963846252, 15.037311442813689, -1.230517046341546,
-                1.6226742267608643, 0.800000011920929, 1.603995680809021,
-                2.813317807512828
-            ],
-            [
-                25.753924132766628, 14.898764911988565, -1.0705579414767101,
-                1.4544227123260498, 0.9581016302108765, 1.4188017845153809,
-                3.121172221499034
-            ],
-            [
-                -16.848543599483037, 19.006636140863463, -0.716509823080124,
-                1.2435309886932373, 0.8035303950309753, 1.3958953619003296,
-                5.20078942774936
-            ],
-            [
-                -9.264792401310842, 44.088361671800826, 0.8896512093546477,
-                1.2013179063796997, 0.9209445118904114, 1.4112517833709717,
-                4.781368231765473
-            ],
-            [
-                -36.885494232177734, -39.51515197753906, 0.020576000213623047,
-                2.299999952316284, 0.800000011920929, 1.0937252044677734,
-                1.4354871829324445
-            ],
-            [
-                20.579928122556566, -61.34001813369708, -1.2065993237927943,
-                2.316119909286499, 1.3219619989395142, 1.5640028715133667,
-                4.821046328536713
-            ],
-            [
-                23.305380231369465, 22.853182976351945, -1.199327267460939,
-                0.30345029611085217, 0.27185997596153844, 0.8178032603639808,
-                4.71238898038469
-            ]
-        ]).reshape(-1, 7),
-        "score": np.array([
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9,
-            0.9
-        ])
-    }
-    info_data=copy.deepcopy(pred_data)
-    del info_data['score']
-    import pickle
-
-    # info_data = pickle.load(
-    #     open('once_infos_val.pkl', 'rb'))  # you can find this file in once_devkit/submission_format/
-    # pred_data = pickle.load(open('../../../../../../../Downloads/result.pkl', 'rb'))  # your prediction file
-    gt_data = list()
-    # for item in info_data:
-    #     if 'annos' in item:
-    #         gt_data.append(item['annos'])
-    gt_data.append(info_data)
-    classes = ['Car', 'Bus', 'Truck', 'Pedestrian', 'Cyclist']
-    result_str, result_dict = get_evaluation_results(gt_data, [pred_data],
-                                                     ['Car', 'Bus', 'Truck', 'Pedestrian', 'Cyclist'], True)
-    print(result_str)
-    print(result_dict)

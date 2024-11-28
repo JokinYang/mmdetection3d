@@ -241,7 +241,7 @@ class OnceMetric(BaseMetric):
             ap_result_str, ap_dict_ = once_eval(
                 gt_annos, results_dict[name], classes,
                 use_superclass=self.use_superclass,
-                difficulty_mode=self.difficulty_mode, use_gpu=False)
+                difficulty_mode=self.difficulty_mode, use_gpu=True)
             for ap_type, ap in ap_dict_.items():
                 ap_dict[f'{name}/{ap_type}'] = float(f'{ap:.4f}')
 
@@ -366,6 +366,9 @@ class OnceMetric(BaseMetric):
                     'boxes_3d': np.array([]),
                     'score': np.array([]),
                 }
+            anno['name'] = anno['name'].reshape(-1)
+            anno['boxes_3d'] = anno['boxes_3d'].reshape(-1, 7)
+            anno['score'] = anno['score'].reshape(-1)
 
             anno['sample_idx'] = np.array([sample_idx] * len(anno['score']), dtype=np.int64)
             det_annos.append(anno)
